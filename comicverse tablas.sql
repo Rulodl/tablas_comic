@@ -2,8 +2,8 @@
 CREATE TABLE comicverse.editorial (
     id_editorial INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(150) NOT NULL,
-    fecha_fundacion DATE,
-    sitio_web VARCHAR(255) UNIQUE
+    fecha_fundacion DATE NULL,
+    sitio_web VARCHAR(255) NULL
 );
 
 CREATE TABLE comicverse.comic (
@@ -106,35 +106,7 @@ ADD [total] DECIMAL(10,2) NULL;
 
 
 
-CREATE TRIGGER trg_update_total_pedido
-ON [comicverse].[comics_pedidos]
-AFTER INSERT, UPDATE, DELETE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    -- Actualizar el total de los pedidos afectados
-    UPDATE p
-    SET p.total = (
-        SELECT SUM(cp.cantidad_comics * c.precio)
-        FROM [comicverse].[comics_pedidos] cp
-        INNER JOIN [comicverse].[comic] c ON cp.id_comic = c.id_comic
-        WHERE cp.id_pedido = p.id_pedido
-    )
-    FROM [comicverse].[pedido] p
-    WHERE p.id_pedido IN (
-        SELECT DISTINCT id_pedido FROM inserted
-        UNION
-        SELECT DISTINCT id_pedido FROM deleted
-    );
-END;
-GO
-
-
-
-
-
-
+#trigger para verificar inventario y actualizar inventario al insertar un pedido 
 CREATE TRIGGER trg_check_inventario
 ON comicverse.comics_pedidos
 INSTEAD OF INSERT
@@ -168,4 +140,39 @@ BEGIN
     INNER JOIN inserted i
         ON c.id_comic = i.id_comic;
 END;
+
+
+
+
+
+
+# trigger para actualizar le precio total del pedido
+CREATE TRIGGER trg_update_total_pedido
+ON [comicverse].[comics_pedidos]
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Actualizar el total de los pedidos afectados
+    UPDATE p
+    SET p.total = (
+        SELECT SUM(cp.cantidad_comics * c.precio)
+        FROM [comicverse].[comics_pedidos] cp
+        INNER JOIN [comicverse].[comic] c ON cp.id_comic = c.id_comic
+        WHERE cp.id_pedido = p.id_pedido
+    )
+    FROM [comicverse].[pedido] p
+    WHERE p.id_pedido IN (
+        SELECT DISTINCT id_pedido FROM inserted
+        UNION
+        SELECT DISTINCT id_pedido FROM deleted
+    );
+END;
+GO
+
+
+
+
+
 
